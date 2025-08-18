@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: isdb-count
+  main:
+    banner-mode: 'off'
+    web-application-type: none
+
+logging:
+  threshold:
+    console: 'error'
