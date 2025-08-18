@@ -1,0 +1,496 @@
+== Presenter Notes
+
+Presenter notes for the "What's new in Spring Boot 4.0" talk.
+
+=== Setup
+
+Before starting ensure:
+
+* HTTPie and viu are installed
+* Ghostty is installed (if you want to use viu)
+* Docker is installed and running
+* psql for postgres
+
+Get the caches nice and hot:
+
+* Run `caches.sh`
+* Run `code .` for YAML editing and snippets
+
+Things are clean:
+
+* You have a 'demo' web browser profile
+* Clear shell history using `erase_history` and run `source prep-history.sh`
+* The `live` brach is checked out
+
+=== Preamble
+
+Inspiration for this talk is in `/images`.
+We're going to create the International Stuffie Database (ISDb).
+It's a bit like IMDB, but for my kids stuffed toys (AKA stuffies).
+
+=== Talk Outline
+
+In this talk we're going to:
+
+* Take some Spring Boot 3.5 applications
+* Upgrade them to Spring Boot 4.0 (showing some pitfalls)
+* Write some code using new Spring features
+* Hopefully answer any questions you might have
+
+=== Tour of the `isdb` REST Application
+
+_(from the `isdb` directory)_
+
+==== Foundations
+
+* Review `compose.yaml` and `init.sql`
+* Look at `pom.xml` and note:
+** Docker Compose support
+** Flyway (we'll return to this later)
+** Actuator
+** Spring Data JDBC
+
+==== Code
+
+* Take a quick look at the `country`, `manufacturer` and `owner` packages (not much to see)
+* Take a look at the `stuffie` package:
+** The `Stuffie` record (mostly) matching the database
+** The `Stuffies` and `Stuffie` controllers
+
+===== Try the `Stuffies` controller:
+
+[,shell]
+----
+http :8080/stuffies/count
+
+http :8080/stuffies/for/adam
+http :8080/stuffies/for/sophie
+http :8080/stuffies/for/alex
+
+http :8080/stuffies/in/uk
+
+http :8080/stuffies/by/aurora 
+http :8080/stuffies/by/jellycat
+----
+
+===== Try the `Stuffie` controller:
+
+[,shell]
+----
+http :8080/stuffie/3/for
+http :8080/stuffie/3/details
+http :8080/stuffie/3/pic | viu -
+----
+
+===== Try the Actuator
+
+[,shell]
+----
+http :8080/actuator/health
+----
+
+Look at the `applcation.yaml` and the `ImageFileHealthIndicator` class
+
+===== Mention Flyway
+
+We're going to come back to this app in a bit to talk about Flyway
+
+=== Tour of the `isdb-count` CLI Application
+
+_(from the `isdb-count` directory)_
+
+A very pointless CLI application using WebFlux for no good reason (other than it demo's something)
+
+* Show the `pom.xml`
+** Point out that the we use `spring-webflux`, not the starter
+** Point out we generate an executable jar
+* Show the application class
+* Show the `application.yaml` file
+
+Run the app
+
+[,shell]
+----
+./target/isdb-count-0.0.1-SNAPSHOT.jar 
+----
+
+
+=== Feature Request
+
+This is the stuffie named "squawk":
+
+[,shell]
+----
+http :8080/stuffie/0/pic | viu -
+----
+
+And there's been some debate about who owns "squawk" so we've decided we need to change our app so that a stuffie can have more than one owner.
+
+We've started this task and got as far as updating the domain model using Flyway.
+
+* Show `init.sql` again
+* Show the database migration in `V2__multiple_owners.sql`
+
+Let's demo that by first resetting the database:
+
+* Stop the app
+
+_(from the `isdb` directory)_
+
+[,shell]
+----
+docker compose down --volumes && docker compose up
+----
+
+Show the DB:
+
+[,shell]
+----
+PGPASSWORD=isdb psql -U isdb -h localhost -p $(docker compose port postgres 5432 | cut -d: -f2)
+\dt
+select * from stuffie;
+----
+
+* Start the app
+
+[,shell]
+----
+select * from stuffie;
+select * from stuffie_owner where stuffie = 0;
+----
+
+OK, but what about `StuffieController`, we need API versioning here so it's time to upgrade!!
+
+=== Upgrading the CLI
+
+Since we're upgrading, let's start small with our simplest app (the CLI).
+
+Before we qo, a quick Q:
+
+> "What happens if we remove the `web-application-type` property?"
+
+* Remove the property from `application.yaml`
+* Run the application and watch it fail
+* Undo and restore the property
+
+Before we upgrade, look at the jar size:
+
+[,shell]
+----
+unzip -l isdb-count/target/isdb-count-0.0.1-SNAPSHOT.jar | grep autocon
+----
+
+* Upgrade the version in the POM to `4.0.0-M2`
+* Build the app and look again at the jar size:
+
+[,shell]
+----
+unzip -l isdb-count/target/isdb-count-0.0.1-SNAPSHOT.jar | grep autocon
+----
+
+* Run the application and watch it fail!
+* Explain the app fails because we have no auto-configuration
+
+We can add the `classic` starter to solve this:
+
+* Change `spring-boot-starter` in the `pom.xml` to `spring-boot-starter-classic`
+* Build and run the application
+
+It works, but let's look at the number of modules we now have:
+
+[,shell]
+----
+unzip -l isdb-count/target/isdb-count-0.0.1-SNAPSHOT.jar | grep spring-boot
+----
+
+We can do better by using the new `webclient` starter:
+
+* Change `spring-boot-starter-classic` in the `pom.xml` to `spring-boot-starter-webclient`
+* Build and run the application
+
+We now have a more focused application, so...
+
+> "What happens if we remove the `web-application-type` property?"
+
+* Remove the property from `application.yaml`
+* Run the application and watch it work
+* This is because we no longer have any "server" auto-configuration
+
+=== Upgrading the REST application
+
+Now we know how to do an upgrade, let's do the `isdb` application:
+
+* Upgrade the version in the POM to `4.0.0-M2`
+* Refresh the project
+
+We have compile errors.
+This is because some classes have changed package.
+
+_Not all classes have changed and not all apps will break._
+_App advisor can help_
+
+* Fix the imports in `ImageFileHealthIndicator`
+
+Our app seems to work, but...
+
+* Reset the database
+
+_(from the `isdb` directory)_
+
+[,shell]
+----
+docker compose down --volumes && docker compose up
+----
+
+Run the app and try to hit an endpoint:
+
+[,shell]
+----
+http :8080/stuffies/count
+----
+
+> Why did the application fail?
+
+There's no flyway support!
+We could add `spring-boot-starter-classic`, but let's instead add the new flyway starter:
+
+* Remove `flyware-core` from the POM
+* Add `spring-boot-starter-flyway` to the POM
+* Run the app and hit the endpoint again to show it working
+
+=== Spring MVC and API Versioning
+
+Now that we've upgrade the application we can take advantage of Spring's new API versioning support.
+Let's fix the `StuffieController` so `/for` has V2 API that returns a list:
+
+Update the existing `forOwner` method:
+
+[,java]
+----
+@GetMapping(path = "/{id}/for", version = "1.0")
+----
+
+Add a new method:
+
+[,java]
+----
+@GetMapping(path = "/{id}/for", version = "2.0")
+public List<String> forOwners(@PathVariable int id) {
+    logger.atInfo().log("Stuffie for owner {}", id);
+    return this.stuffieService.getOwners(id);
+}
+----
+
+* Run the application and watch it fail!
+
+_We've *not* told Spring MVC how it will obtain the version and what the default is_
+
+* Edit the `application.yaml` under `spring:`
+
+[,yaml]
+----
+mvc:
+  apiversion:
+    default: '1.0'
+    use:
+      header: API-Version
+----
+
+Run the application and test it:
+
+[,shell]
+----
+http :8080/stuffie/0/for
+http :8080/stuffie/0/for 'API-Version: 2.0' 
+----
+
+=== Tour of the `isdb-web` Application
+
+_(from the `isdb-web` directory)_
+
+We can now have a look at another application that provides a web UI and calls the REST API using an HTTP Service Client Interface.
+
+==== Foundations
+
+* Review `compose.yaml` and note that we have Grafana with OTEL
+* Look at `pom.xml` and note:
+** Docker Compose support
+** *No* Actuator
+** Spring Boot Starter Web MVC  (new name for `spring-boot-starter-web`)
+** Spring Boot Starter Mustache
+** Spring Boot Starter RestClient
+
+==== Code
+
+* Look at the `WebController`
+** It returns `ModelAndView` except for the picture
+** Show the related `.mustache` files
+* Look at the `StuffieDetailsService`
+* Look at the `StuffieHttpClient`
+** Note that service clients existed before, but needed more boilerplate
+** Note the `@HttpServiceClient` is new and causes the interface to be scanned
+* Show the records
+
+Run the application and watch it fail!
+
+=== HTTP Service Groups
+
+* Explain HTTP service groups
+* Explain the `HttpServiceGroupConfigurer` interface
+* Explain the property hierarchy
+** `http.client.service.group.<name>`
+** `http.client.service.`
+** `http.client.`
+
+Add properties to `application.yml` under `spring:`
+
+[,yaml]
+----
+http:
+  client:
+    service:
+      group:
+        stuffie:
+          base-url: 'http://localhost:8080'
+          read-timeout: 1s
+----
+
+Run the application and open http://localhost:8081.
+
+Select a stuffie and watch the app fail!
+
+_The failure is because we expect a list, by we're calling API v1.0_
+
+=== Adding API Version to the Client
+
+Luckily HTTP clients also support API versioning.
+We need to update `owners` to use version 2.0.
+
+Update `StuffieHttClient` to:
+
+[,java]
+----
+@GetExchange(url = "/stuffie/{id}/for", version = "2.0")
+List<String> owners(@PathVariable int id);
+----
+
+Run the application to see it still fail!
+
+* We need to tell the client how to send the version
+* Edit the `application.yaml` under `spring.http.client.service`
+
+[,yaml]
+----
+http:
+  client:
+    service:
+      apiversion:
+        insert:
+          header: API-Version
+----
+
+This is saying for _all_ service clients insert the version using a header.
+_Remember the property hierarchy from earlier!_
+
+Run the application again and open http://localhost:8081/stuffie/7
+
+=== Adding Resiliency
+
+Let's test that timeout property by artificially adding latency.
+
+* Edit `StuffieController` in the `isdb` application to change `forOwners`
+
+[,java]
+----
+@GetMapping(path = "/{id}/for", version = "2.0")
+public List<String> forOwners(@PathVariable int id) {
+    logger.atInfo().log("Stuffie for owner {}", id);
+    napNowAndAgain();
+    return this.stuffieService.getOwners(id);
+}
+----
+
+This will make some requests take time.
+
+Restart *BOTH* applications and refresh http://localhost:8081/stuffie/7 a few times.
+The app will fail!
+
+Spring Framework provides new features that can help.
+
+* Edit `StuffieDetailService` and add `@Retryable` to `getStuffieDetails`
+* Edit `IsdbWebApplication` and add `@EnableResilientMethods`
+
+Run the app again and it should be slow, but work.
+
+=== OpenTelemetry Without Actuator
+
+(if short on time, jump to `main` and just demo)
+
+Remember we had Grafana in our `compose.yaml`, let's now use it and _without_ actuator.
+This is another benefit of our modularization efforts.
+
+* Edit `pom.xml` in `isdb-web` and add:
+
+[,xml]
+----
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-opentelemetry</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-tracing-bridge-otel</artifactId>
+</dependency>
+----
+
+* This will publish metrics and tracing data using OTLP
+* It will also add `traceparent` headers
+
+We need to teak some settings to get enough data to demo.
+
+* Edit `application.yml` and add:
+
+[,yaml]
+----
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+----
+
+In order to log correlation IDs on the `isdb` app we can add the `spring-boot-otel-module` to it.
+
+NOTE: We don't add the starter here because we just want basic OpenTelemetry support not our opinionated starter that actually publishes over OTLP.
+
+* Edit `pom.xml` in `isdb` and add:
+
+[,xml]
+----
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-opentelemetry</artifactId>
+</dependency>
+----
+
+* Restart *both* applications
+* Hit http://localhost:8081/stuffie/7 a few times
+
+We can now look at the dashboard:
+
+* Open http://localhost:3000
+* Go to "Drilldown" / "Metrics" and show the 
+* Go to "Drilldown" / "Traces" and click on "Traces"
+
+Order by date and we should see one slow trace.
+Open the trace and look at the ID.
+Open the log of `isdb` and show the "Having a nap" message with a matching correlation ID.
+
+=== Summary
+
+I'll leave you with my favorite stuffie and hope this talk hasn't left you feeling like them:
+
+* Open http://localhost:8081 and select "Mad Eye" (http://localhost:8081/stuffie/24)
+* If there's time do Q and A
+
+
+

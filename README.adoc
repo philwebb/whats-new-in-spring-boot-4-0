@@ -1,0 +1,6 @@
+== What's New in Spring Boot 4.0
+
+This repository contains a demos showing what's new in Spring Boot 4.0.
+
+Review the commit history to see how the applications were upgraded from Spring Boot 3.5 and how new features were addded.
+

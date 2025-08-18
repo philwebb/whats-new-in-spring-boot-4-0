@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: isdb
+  flyway:
+    baseline-on-migrate: true
+  docker:
+    compose:
+      lifecycle-management: start-only
+      skip:
+        in-tests: false
+
+management:
+  endpoint:
+    health:
+      show-components: always
+      show-details: always
