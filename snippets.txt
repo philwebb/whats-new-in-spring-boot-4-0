@@ -1,0 +1,138 @@
+  mvc:
+    apiversion:
+      default: '1.0'
+      use:
+        header: API-Version
+
+--------------------------------------------
+
+  http:
+    clients:
+      read-timeout: 1s
+    serviceclient:
+      stuffie:
+        base-url: 'http://localhost:8080'
+
+--------------------------------------------
+
+  http:
+    clients:
+      read-timeout: 1s
+    serviceclient:
+      stuffie:
+        base-url: 'http://localhost:8080'
+        apiversion:
+          insert:
+            header: API-Version
+
+--------------------------------------------
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-opentelemetry</artifactId>
+</dependency>
+
+--------------------------------------------
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+
+--------------------------------------------
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-micrometer-tracing-opentelemetry</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-tracing-bridge-otel</artifactId>
+</dependency>
+
+--------------------------------------------
+
+syntax = "proto3";
+
+option java_package = "com.example.isdb.proto";
+option java_multiple_files = true;
+
+service Isdb {
+    rpc GetStuffiesByOwner (GetStuffiesByOwnerRequest) returns (stream GetStuffiesByOwnerResponse) {
+    }
+}
+
+message GetStuffiesByOwnerRequest {
+    string owner = 1;
+}
+
+message GetStuffiesByOwnerResponse {
+    string name = 1;
+    string type = 2;
+}
+
+--------------------------------------------
+
+<plugin>
+    <groupId>io.github.ascopes</groupId>
+    <artifactId>protobuf-maven-plugin</artifactId>
+</plugin>
+
+--------------------------------------------
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-grpc-server</artifactId>
+    <exclusions>
+        <exclusion>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty-shaded</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>io.grpc</groupId>
+    <artifactId>grpc-servlet-jakarta</artifactId>
+</dependency>
+
+--------------------------------------------
+
+package com.example.isdb.stuffie;
+
+import com.example.isdb.proto.GetStuffiesByOwnerRequest;
+import com.example.isdb.proto.GetStuffiesByOwnerResponse;
+import com.example.isdb.proto.GetStuffiesByOwnerResponse.Builder;
+import com.example.isdb.proto.IsdbGrpc;
+import io.grpc.stub.StreamObserver;
+
+import org.springframework.boot.context.properties.PropertyMapper;
+import org.springframework.grpc.server.service.GrpcService;
+
+@GrpcService
+public class StuffieGrpcService extends IsdbGrpc.IsdbImplBase {
+
+    private final StuffieService stuffieService;
+
+    public StuffieGrpcService(StuffieService stuffieService) {
+        this.stuffieService = stuffieService;
+    }
+
+    @Override
+    public void getStuffiesByOwner(GetStuffiesByOwnerRequest request,
+            StreamObserver<GetStuffiesByOwnerResponse> responseObserver) {
+        this.stuffieService.listByOwner(request.getOwner())
+            .stream()
+            .map(this::asResponse)
+            .forEach(responseObserver::onNext);
+        responseObserver.onCompleted();
+    }
+
+    private GetStuffiesByOwnerResponse asResponse(Stuffie stuffie) {
+        PropertyMapper map = PropertyMapper.get();
+        Builder builder = GetStuffiesByOwnerResponse.newBuilder();
+        map.from(stuffie::name).to(builder::setName);
+        map.from(stuffie::type).to(builder::setType);
+        return builder.build();
+    }
+
+}
