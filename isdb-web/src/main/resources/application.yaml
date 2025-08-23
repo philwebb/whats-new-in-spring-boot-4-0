@@ -17,3 +17,7 @@ spring:
           stuffie:
             base-url: 'http://localhost:8080'
             read-timeout: 1s
+management:
+  tracing:
+    sampling:
+      probability: 1.0
