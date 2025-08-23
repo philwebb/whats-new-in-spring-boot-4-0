@@ -16,7 +16,7 @@ public interface StuffieHttpClient {
 	@GetExchange("/stuffie/{id}/detail")
 	Stuffie detail(@PathVariable int id);
 
-	@GetExchange(url = "/stuffie/{id}/for")
+	@GetExchange(url = "/stuffie/{id}/for", version = "2.0")
 	List<String> owners(@PathVariable int id);
 
 	@GetExchange("/stuffie/{id}/pic")
