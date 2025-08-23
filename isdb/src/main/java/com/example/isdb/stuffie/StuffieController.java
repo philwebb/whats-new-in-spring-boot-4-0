@@ -55,6 +55,7 @@ public class StuffieController {
 	@GetMapping(path = "/{id}/for", version = "2.0")
 	public List<String> forOwners(@PathVariable int id) {
 		logger.atInfo().log("Stuffie for owner {}", id);
+		napNowAndAgain();
 		return this.stuffieService.getOwners(id);
 	}
 
