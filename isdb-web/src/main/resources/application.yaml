@@ -16,3 +16,8 @@ spring:
         apiversion:
           insert:
             header: API-Version
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
