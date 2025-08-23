@@ -7,3 +7,9 @@ spring:
   docker:
     compose:
       lifecycle-management: start-only
+  http:
+    clients:
+      read-timeout: 1s
+    serviceclient:
+      stuffie:
+        base-url: 'http://localhost:8080'
