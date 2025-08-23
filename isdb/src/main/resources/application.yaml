@@ -8,6 +8,11 @@ spring:
       lifecycle-management: start-only
       skip:
         in-tests: false
+  mvc:
+    apiversion:
+      default: '1.0'
+      use:
+        header: API-Version
 
 management:
   endpoint:
