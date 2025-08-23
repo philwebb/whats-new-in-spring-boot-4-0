@@ -16,6 +16,7 @@
 
 package com.example.isdbweb;
 
+import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -28,6 +29,7 @@ public class StuffieDetailsService {
 		this.stuffieHttpClient = stuffieHttpClient;
 	}
 
+	@Retryable
 	public StuffieDetails getStuffieDetails(int id) {
 		Stuffie stuffie = this.stuffieHttpClient.detail(id);
 		String owners = StringUtils.collectionToDelimitedString(this.stuffieHttpClient.owners(id), " & ");
