@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>ISDb</title>
+    </head>
+    <body>
+        <div>
+            <select name="stuffie" onchange="window.location.href=this.value;">
+             <option selected>--pick one--</option>
+            {{#stuffies}}
+                <option value="/stuffie/{{id}}">{{name}}</option>
+            {{/stuffies}}
+            </select>
+        </div>
+        <img src="/images/isdb.jpg" />
+    </body>
+</html>
