@@ -17,6 +17,7 @@
 package com.example.isdb.stuffie;
 
 import java.time.Duration;
+import java.util.List;
 
 import com.example.isdb.stuffie.Stuffie.DetailView;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -45,10 +46,16 @@ public class StuffieController {
 		this.stuffieService = stuffieService;
 	}
 
-	@GetMapping(path = "/{id}/for")
+	@GetMapping(path = "/{id}/for", version = "1.0")
 	public String forOwner(@PathVariable int id) {
 		logger.atInfo().log("Stuffie for owner {}", id);
 		return this.stuffieService.getOwners(id).get(0);
+	}
+
+	@GetMapping(path = "/{id}/for", version = "2.0")
+	public List<String> forOwners(@PathVariable int id) {
+		logger.atInfo().log("Stuffie for owner {}", id);
+		return this.stuffieService.getOwners(id);
 	}
 
 	@GetMapping(path = "/{id}/detail")
