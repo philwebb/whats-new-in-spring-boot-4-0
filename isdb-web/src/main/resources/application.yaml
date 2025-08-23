@@ -10,6 +10,9 @@ spring:
   http:
     client:
       service:
+        apiversion:
+          insert:
+            header: API-Version
         group:
           stuffie:
             base-url: 'http://localhost:8080'
