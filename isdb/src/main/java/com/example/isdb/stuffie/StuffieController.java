@@ -19,11 +19,8 @@ package com.example.isdb.stuffie;
 import java.time.Duration;
 import java.util.List;
 
-import com.example.isdb.stuffie.Stuffie.DetailView;
-import com.fasterxml.jackson.annotation.JsonView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
@@ -31,6 +28,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.example.isdb.stuffie.Stuffie.MinimalView;
+import com.fasterxml.jackson.annotation.JsonView;
 
 @RestController
 @RequestMapping("/stuffie")
@@ -60,7 +60,7 @@ public class StuffieController {
 	}
 
 	@GetMapping(path = "/{id}/detail")
-	@JsonView(DetailView.class)
+	@JsonView(MinimalView.class)
 	Stuffie detail(@PathVariable int id) {
 		return this.stuffieService.get(id);
 	}
