@@ -13,3 +13,6 @@ spring:
     serviceclient:
       stuffie:
         base-url: 'http://localhost:8080'
+        apiversion:
+          insert:
+            header: API-Version
