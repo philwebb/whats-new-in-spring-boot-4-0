@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option java_package = "com.example.isdbaudit.proto";
+option java_multiple_files = true;
+
+service Isdb {
+	rpc GetStuffiesByOwner (GetStuffiesByOwnerRequest) returns (stream GetStuffiesByOwnerResponse) {
+	}
+}
+
+message GetStuffiesByOwnerRequest {
+    string owner = 1;
+}
+
+message GetStuffiesByOwnerResponse {
+    string name = 1;
+    string type = 2;
+}
